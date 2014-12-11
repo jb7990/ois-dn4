@@ -18,8 +18,6 @@ function getSessionId() {
     return response.responseJSON.sessionId;
 }
 
-window.onload = getLocation();
-
 
 function getLocation() {
     if (navigator.geolocation) {
