@@ -9,7 +9,9 @@
     <script src="script.js"></script>
     <style>
         body {padding: 10px;}
-        .btn {margin-top: 10px;}
+        .btn {margin-top: 10px;
+              margin-left: 10px;
+              margin-right: 10px;}
     </style>
 </head>
 <body>
@@ -50,7 +52,12 @@
                         <span class="label label-primary">EHR ID</span><input id="preberiEHRid" type="text" class="form-control input-mini">
                         <span class="label label-primary">Telesna temperatura</span>
                         <div class="input-group">
-                            <input id="dodajTelesnaTemperatura" type="text" class="form-control input-mini">
+                            <input id="dodajTelesnaTemperatura" type="text" class="form-control input-mini" onfocus="preglejTemperaturo()">
+                            <span class="input-group-addon">°C</span>
+                        </div>
+                        <span class="label label-primary">Zunanja temperatura</span>
+                        <div class="input-group">
+                            <input id="zunanjaTemperatura" type="text" class="form-control input-mini" readonly>
                             <span class="input-group-addon">°C</span>
                         </div>
                         <span id="dodajMeritevTemperatureSporocilo"></span>
@@ -60,5 +67,8 @@
             </div>
         </div>
 
+        <option id="latitude"></option>
+        <option id="longitude"></option>
+        <option id="date"></option>
 </body>
 </html>
