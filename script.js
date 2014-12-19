@@ -5,8 +5,8 @@ var username = "ois.seminar";
 var password = "ois4fri";
 var APIKEY = "387b7f21d745d323f43550ac4e419245";
 var url = 'https://api.forecast.io/forecast/';
-var weatherData;
 var meritevLokacija = [];
+var trenutnaPoizvedba = [];
 
 function getSessionId() {
     var response = $.ajax({
@@ -30,8 +30,14 @@ function getLocation() {
 function showPosition(position) {
     $("#latitude").val(position.coords.latitude);
     $("#longitude").val(position.coords.longitude);
-    var date = new Date(position.timestamp).toISOString();
-    $("#date").val(date);
+    var date = new Date(position.timestamp);
+    var tempDate = date.toISOString();
+    $("#date").val(tempDate);
+    var dateStart = tempDate.substr(0,11);
+    var dateTime = date.toLocaleTimeString();
+    var dateEnd = tempDate.substring(19,date.length);
+    date = dateStart.concat(dateTime, dateEnd);
+    $("#dateLocal").val(date);
 }
 
 
@@ -40,19 +46,19 @@ function showLocationError(error) {
     switch(error.code) {
         case error.PERMISSION_DENIED:
             console.log("User denied the request for Geolocation.");
-            $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-warning fade-in'>User denied the request for Geolocation.</span>");
+            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>User denied the request for Geolocation.</span>");
             break;
         case error.POSITION_UNAVAILABLE:
             console.log("Location information is unavailable.");
-            $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-warning fade-in'>Location information is unavailable.</span>");
+            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>Location information is unavailable.</span>");
             break;
         case error.TIMEOUT:
             console.log("The request to get user location timed out.");
-            $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-warning fade-in'>The request to get user location timed out.</span>");
+            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>The request to get user location timed out.</span>");
             break;
         case error.UNKNOWN_ERROR:
             console.log("An unknown error occurred.");
-            $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-warning fade-in'>An unknown error occurred.</span>");
+            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>An unknown error occurred.</span>");
             break;
     }
 }
@@ -64,9 +70,19 @@ function dodajOsebo() {
     var priimek = $("#kreirajPriimek").val();
     var datumRojstva = $("#kreirajDatumRojstva").val();
 
+    var celoIme = ime+ " "+ priimek;
+
+    for(var i = 0; i < meritevLokacija.length; i++) {
+        if(meritevLokacija[i].ime == celoIme) {
+            $("#kreirajSporocilo").html("<span class='obvestilo label label-warning fade-in'>Ta oseba že obstaja!</span>");
+            return;
+        }
+    }
+
     if (!ime || !priimek || !datumRojstva || ime.trim().length == 0 || priimek.trim().length == 0 || datumRojstva.trim().length == 0) {
         $("#kreirajSporocilo").html("<span class='obvestilo label label-warning fade-in'>Prosim vnesite zahtevane podatke!</span>");
     } else {
+
         $.ajaxSetup({
             headers: {"Ehr-Session": sessionId}
         });
@@ -88,7 +104,7 @@ function dodajOsebo() {
                     data: JSON.stringify(partyData),
                     success: function (party) {
                         if (party.action == 'CREATE') {
-                            $("#kreirajSporocilo").append("<span class='obvestilo label label-success fade-in'>Uspešno kreiran EHR '" + ehrId + "'.</span>");
+                            $("#kreirajSporocilo").html("<span class='obvestilo label label-success fade-in'>Uspešno kreiran EHR.</span>");
                             console.log("Uspešno kreiran EHR '" + ehrId + "'.");
                             if(meritevLokacija.length == 0) {
                                 meritevLokacija.push({
@@ -100,6 +116,10 @@ function dodajOsebo() {
                                     text : ""+ime+" "+priimek+""
                                 }));
                                 $('#dodajTemperaturo').append($('<option/>', {
+                                    value: ""+ehrId+"",
+                                    text : ""+ime+" "+priimek+""
+                                }));
+                                $('#preglejTemperaturoOseba').append($('<option/>', {
                                     value: ""+ehrId+"",
                                     text : ""+ime+" "+priimek+""
                                 }));
@@ -123,6 +143,10 @@ function dodajOsebo() {
                                         value: ""+ehrId+"",
                                         text : ""+ime+" "+priimek+""
                                     }));
+                                    $('#preglejTemperaturoOseba').append($('<option/>', {
+                                        value: ""+ehrId+"",
+                                        text : ""+ime+" "+priimek+""
+                                    }));
                                 }
                             }
                         }
@@ -135,6 +159,77 @@ function dodajOsebo() {
             }
         });
     }
+}
+
+function preglejMeritveTemperature() {
+    sessionId = getSessionId();
+
+    var ime = $("#preglejTemperaturoOseba").text();
+	var ehrId = $("#preglejTemperaturoOseba").val();
+	var tip = $("#preglejTemperaturoTip").val();
+
+	if (!ehrId || ehrId.trim().length == 0 || !tip || tip.trim().length == 0 || !ime || ime.trim().length == 0) {
+		$("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>Prosim izberite osebo in tip poizvedbe!");
+	} else {
+        $.ajax({
+			url: baseUrl + "/demographics/ehr/" + ehrId + "/party",
+	    	type: 'GET',
+	    	headers: {"Ehr-Session": sessionId},
+	    	success: function (data) {
+				var party = data.party;
+				$("#rezultatMeritveTemperature").html("<br/><span>Pridobivanje podatkov za <b>'" + tip + "'</b> bolnika <b>'" + party.firstNames + " " + party.lastNames + "'</b>.</span><br/><br/>");
+					$.ajax({
+					    url: baseUrl + "/view/" + ehrId + "/" + "body_temperature",
+					    type: 'GET',
+					    headers: {"Ehr-Session": sessionId},
+					    success: function (res) {
+					    	if (res.length > 0) {
+                                trenutnaPoizvedba = [];
+                                var meritveArray = [];
+                                for(var i = 0; i < meritevLokacija.length; i++) {
+                                    if(meritevLokacija[i].ime == ime) {
+                                        meritveArray = meritevLokacija[i].meritve;
+                                        break;
+                                    }
+                                }
+						    	var results = "<table class='table table-striped table-hover'><tr><th>Datum in ura</th><th class='text-center'>Telesna temperatura</th><th class='text-right'>Zunanja temperatura</th></tr>";
+						        for (var i in res) {
+                                    var date = res[i].time.substring(0, res[i].time.length-10);
+                                    var temp = 0;
+                                    for(var j = 0; j < meritveArray.length; j++) {
+                                        if(meritveArray[j].date == date) {
+                                            temp = meritveArray[j].temperatura;
+                                            break;
+                                        }
+                                    }
+                                    trenutnaPoizvedba.push({
+                                       "temperature" : res[i].temperature,
+                                       "oTemperature" : temp,
+                                       "date" : date
+                                    });
+						            results += "<tr><td>" + date + "</td><td class='text-center'>" + res[i].temperature + " " 	+ res[i].unit + "</td><td class='text-right'>" + temp + " " + res[i].unit + "</td>";
+						        }
+						        results += "</table>";
+                                results += '<button type="button" class="btn btn-primary btn-xs pull-right" onclick="narisiGraf()">Narisi graf</button>'
+						        $("#rezultatMeritveTemperature").append(results);
+					    	} else {
+					    		$("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>Ni podatkov!</span>");
+					    	}
+					    },
+					    error: function() {
+					    	$("#preglejMeritveTemperature").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+							console.log(JSON.parse(err.responseText).userMessage);
+					    }
+					});
+                $("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>");
+            },
+            error: function(err) {
+                $("#preglejMeritveTemperature").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                console.log(JSON.parse(err.responseText).userMessage);
+            }
+        });
+    }
+
 }
 
 function dodajMeritevTemperature() {
@@ -175,25 +270,31 @@ function dodajMeritevTemperature() {
                 for(var i = 0; i < meritevLokacija.length; i++) {
                     if(meritevLokacija[i].ime == ime) {
                         if(meritevLokacija[i].meritve.length == 0) {
+                            var date = $("#dateLocal").val();
+                            date = date.substring(0, date.length-5);
                             meritevLokacija[i].meritve.push({
-                                "date" : $("#date").val(),
+                                "date" : date,
                                 "longitude" : $("#longitude").val(),
-                                "latitude" : $("#latitude").val()
+                                "latitude" : $("#latitude").val(),
+                                "temperatura" : zunTemperatura
                             });
                         } else {
                             var trenutni = meritevLokacija[i].meritve;
                             var dateObstaja = false;
                             trenutni.forEach(function(date) {
                                var cDate = date.date;
-                               if(cDate == $("#date").val()){
+                               if(cDate == $("#dateLocal").val()){
                                    dateObstaja = true;
                                }
                             });
                             if(!dateObstaja) {
+                                var date = $("#dateLocal").val();
+                                date = date.substring(0, date.length-5);
                                 meritevLokacija[i].meritve.push({
-                                    "date" : $("#date").val(),
+                                    "date" : date,
                                     "longitude" : $("#longitude").val(),
-                                    "latitude" : $("#latitude").val()
+                                    "latitude" : $("#latitude").val(),
+                                    "temperatura" : zunTemperatura
                                 });
                             }
                         }
@@ -215,6 +316,20 @@ function dodajMeritevTemperature() {
 
 }
 
+function pobrisiIme() {
+    $("#kreirajIme").val("");
+    $("#kreirajPriimek").val("");
+    $("#kreirajDatumRojstva").val("");
+}
+
+function pobrisiDodaj() {
+    $("#preberiEHRid").val("");
+    $("#dodajTelesnaTemperatura").val("");
+    $("#zunanjaTemperatura").val("");
+}
+
+
+
 function preglejTemperaturo() {
     getLocation();
     var latitude =  $("#latitude").val();
@@ -225,6 +340,226 @@ function preglejTemperaturo() {
         $("#zunanjaTemperatura").val(convertToCelsius(weatherData.currently.apparentTemperature));
     });
 }
+
+function narisiGraf() {
+    var dodanHtml =
+        '<div class="panel panel-primary">' +
+            '<div class="panel-heading">' +
+                '<div><b>Graf</b></div>' +
+            '</div>' +
+            '<div class="panel-body">' +
+                '<div id="graf"></div>'
+            '</div>' +
+        '</div>';
+    $("#grafDiv").html(dodanHtml);
+
+    var margin = {top: 20, right: 20, bottom: 30, left: 40},
+        width = $("#graf").parent().width() - margin.left - margin.right,
+        height = $("#preglejMeritve").height() - margin.top - margin.bottom - $("#grafDiv").height();
+
+    var x0 = d3.scale.ordinal()
+        .rangeRoundBands([0, width], .1);
+
+    var x1 = d3.scale.ordinal();
+
+    var y = d3.scale.linear()
+        .range([height, 0]);
+
+    var color = d3.scale.ordinal()
+        .range(["#6b486b", "#d0743c"]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x0)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .tickFormat(d3.format(".2s"));
+
+    var svg = d3.select("#graf").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+    var dates = d3.keys(trenutnaPoizvedba[0]).filter(function(key) { return key !== "date"; });
+
+    trenutnaPoizvedba.forEach(function(d) {
+        d.dates = dates.map(function(name) { return {name: name, value: +d[name]}; });
+    });
+
+
+    x0.domain(trenutnaPoizvedba.map(function(d) { return d.date; }));
+    x1.domain(dates).rangeRoundBands([0, x0.rangeBand()]);
+    y.domain([0, d3.max(trenutnaPoizvedba, function(d) { return d3.max(d.dates, function(d) { return d.value; }); })]);
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 2)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Temperature");
+
+    var date = svg.selectAll(".date")
+        .data(trenutnaPoizvedba)
+        .enter().append("g")
+        .attr("class", "g")
+        .attr("transform", function(d) { return "translate(" + x0(d.date) + ",0)"; });
+
+    date.selectAll("rect")
+        .data(function(d) { return d.dates; })
+        .enter().append("rect")
+        .attr("width", x1.rangeBand())
+        .attr("x", function(d) { return x1(d.name); })
+        .attr("y", function(d) { return y(d.value); })
+        .attr("height", function(d) { return height - y(d.value); })
+        .style("fill", function(d) { return color(d.name); });
+
+    dates[0] = "Zunanja temperatura";
+    dates[1] = "Telesna temperatura";
+
+    var legend = svg.selectAll(".legend")
+        .data(dates.slice().reverse())
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+    legend.append("rect")
+        .attr("x", width - 18)
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", color);
+
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(function(d) { return d; });
+
+    trenutnaPoizvedba.forEach(function(d){
+        delete d.dates;
+    });
+
+
+}
+
+function updateGraph() {
+    if($("#graf").length) {
+        $("#graf").empty();
+        var margin = {top: 20, right: 20, bottom: 30, left: 40},
+            width = $("#graf").parent().width() - margin.left - margin.right,
+            height = $("#preglejMeritve").height() - margin.top - margin.bottom - $("#grafDiv").height();
+
+        var x0 = d3.scale.ordinal()
+            .rangeRoundBands([0, width], .1);
+
+        var x1 = d3.scale.ordinal();
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        var color = d3.scale.ordinal()
+            .range(["#6b486b", "#d0743c"]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x0)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .tickFormat(d3.format(".2s"));
+
+        var svg = d3.select("#graf").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var dates = d3.keys(trenutnaPoizvedba[0]).filter(function(key) { return key !== "date"; });
+
+
+        trenutnaPoizvedba.forEach(function(d) {
+            d.dates = dates.map(function(name) { return {name: name, value: +d[name]}; });
+        });
+
+
+        x0.domain(trenutnaPoizvedba.map(function(d) { return d.date; }));
+        x1.domain(dates).rangeRoundBands([0, x0.rangeBand()]);
+        y.domain([0, d3.max(trenutnaPoizvedba, function(d) { return d3.max(d.dates, function(d) { return d.value; }); })]);
+
+
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 2)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Temperature");
+
+        var date = svg.selectAll(".date")
+            .data(trenutnaPoizvedba)
+            .enter().append("g")
+            .attr("class", "g")
+            .attr("transform", function(d) { return "translate(" + x0(d.date) + ",0)"; });
+
+        date.selectAll("rect")
+            .data(function(d) { return d.dates; })
+            .enter().append("rect")
+            .attr("width", x1.rangeBand())
+            .attr("x", function(d) { return x1(d.name); })
+            .attr("y", function(d) { return y(d.value); })
+            .attr("height", function(d) { return height - y(d.value); })
+            .style("fill", function(d) { return color(d.name); });
+
+        dates[0] = "Zunanja temperatura";
+        dates[1] = "Telesna temperatura";
+
+        var legend = svg.selectAll(".legend")
+            .data(dates.slice().reverse())
+            .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+        legend.append("rect")
+            .attr("x", width - 18)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", color);
+
+        legend.append("text")
+            .attr("x", width - 24)
+            .attr("y", 9)
+            .attr("dy", ".35em")
+            .style("text-anchor", "end")
+            .text(function(d) { return d; });
+    }
+
+    trenutnaPoizvedba.forEach(function(d){
+        delete d.dates;
+    });
+}
+
+window.onresize = updateGraph;
 
 function convertToCelsius(fahr) {
     return Math.round(((fahr - 32) * 5/9 *10))/10;
@@ -241,6 +576,11 @@ $(document).ready(function() {
     $("#dodajTemperaturo").change(function() {
         var podatki = $(this).val();
         $("#preberiEHRid").val(podatki);
+    });
+    $("#preglejTemperaturoOseba").change(function() {
+       $("#preglejTemperaturoTip").val("");
+       $("#rezultatMeritveTemperature").empty();
+       preglejMeritveTemperature()
     });
 });
 

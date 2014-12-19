@@ -6,17 +6,30 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
     <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script src="script.js"></script>
     <style>
         body {padding: 10px;}
         .btn {margin-top: 10px;
               margin-left: 10px;
               margin-right: 10px;}
+
+
+        #graf {
+            font: 10px sans-serif;
+        }
+
+
+
+
     </style>
 </head>
 <body>
-        <div class="page-header"><h2>Pregled temperature <small>EhrScape platforma</small></h2></div>
+        <p class="pull-right">Deluje na vseh browserjih razen Chrome-a.</p>
 
+        <div class="pull-left"><span id="lokacijaError"></span></div>
+
+        <div class="page-header"><h2>Pregled temperature <small>EhrScape platforma</small></h2></div>
 
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6">
@@ -35,6 +48,7 @@
                         <span class="label label-primary">Datum rojstva</span><input id="kreirajDatumRojstva" type="text" class="form-control" placeholder="YYYY-MM-DDThh:mm">
                         <span id="kreirajSporocilo"></span>
                         <button type="button" class="btn btn-primary btn-xs pull-right" onclick="dodajOsebo()">Dodaj osnovne podatke o bolniku</button>
+                        <button type="button" class="btn btn-primary btn-xs pull-right" onclick="pobrisiIme()">Pobriši podatke</button>
                     </div>
                 </div>
             </div>
@@ -44,7 +58,7 @@
                         <div class="row">
                             <div class="col-lg-8 col-md-8 col-sm-8"><b>Dodaj meritev temperature</b></div>
                             <div class="col-lg-4 col-md-4 col-sm-4">
-                                <select class="form-control input-sm" id="dodajTemperaturo"><option value=""></option></select>
+                                <select class="form-control input-sm" id="dodajTemperaturo" onclick="preglejTemperaturo()"><option value=""></option></select>
                             </div>
                         </div>
                     </div>
@@ -52,23 +66,49 @@
                         <span class="label label-primary">EHR ID</span><input id="preberiEHRid" type="text" class="form-control input-mini">
                         <span class="label label-primary">Telesna temperatura</span>
                         <div class="input-group">
-                            <input id="dodajTelesnaTemperatura" type="text" class="form-control input-mini" onfocus="preglejTemperaturo()">
+                            <input id="dodajTelesnaTemperatura" type="text" class="form-control input-mini" onclick="preglejTemperaturo()">
                             <span class="input-group-addon">°C</span>
                         </div>
                         <span class="label label-primary">Zunanja temperatura</span>
                         <div class="input-group">
-                            <input id="zunanjaTemperatura" type="text" class="form-control input-mini" readonly>
+                            <input id="zunanjaTemperatura" type="text" class="form-control input-mini" readonly onclick="preglejTemperaturo()">
                             <span class="input-group-addon">°C</span>
                         </div>
                         <span id="dodajMeritevTemperatureSporocilo"></span>
-                        <button type="button" class="btn btn-primary btn-xs pull-right" onclick="dodajMeritevTemperature()">Dodaj meritev temperature</button>
+                        <button type="button" class="btn btn-primary btn-xs pull-right" onclick="dodajMeritevTemperature()">Dodaj meritev</button>
+                        <button type="button" class="btn btn-primary btn-xs pull-right" onclick="pobrisiDodaj()">Pobriši podatke</button>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-6">
+                <div id="preglejMeritve" class="panel panel-primary">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-lg-5 col-md-5 col-sm-5"><b>Preglej meritve temperature</b></div>
+                            <div class="col-lg-3 col-md-3 col-sm-3">
+                                <select class="form-control input-sm" id="preglejTemperaturoOseba"><option value=""></option></select>
+                            </div>
+                            <div class="col-lg-4 col-md-4 col-sm-4">
+                                <select class="form-control input-sm" id="preglejTemperaturoTip" onchange="preglejMeritveTemperature()"><option value=""></option><option value="telesna temperatura">telesna temperatura</option></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <span id="preglejMeritveTemperature"></span>
+                        <div id="rezultatMeritveTemperature"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id= "grafDiv" class="col-lg-6 col-md-6 col-sm-6">
             </div>
         </div>
 
         <option id="latitude"></option>
         <option id="longitude"></option>
         <option id="date"></option>
+        <option id="dateLocal"></option>
 </body>
 </html>
