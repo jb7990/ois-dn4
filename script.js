@@ -1,6 +1,8 @@
 var baseUrl = 'https://rest.ehrscape.com/rest/v1';
 var queryUrl = baseUrl + '/query';
-
+var osebe = [{ "ime" : "Janez", "priimek" : "Novak", "datumRojstva" : "1968-03-12T07:35", "ehrId" : "9f3a1583-d9ee-4524-a4c4-91af1e4808c1" },
+             { "ime" : "Majda", "priimek" : "Anders", "datumRojstva" : "1960-09-21T04:29", "ehrId" : "8d2c6b4b-4c39-4435-acea-de201aba801b" },
+             { "ime" : "Monika", "priimek" : "Horvat", "datumRojstva" : "1987-04-23T10:30", "ehrId" : "625154ac-23a0-4289-8be8-63ab1f7f27df" }];
 var username = "ois.seminar";
 var password = "ois4fri";
 var APIKEY = "387b7f21d745d323f43550ac4e419245";
@@ -17,7 +19,6 @@ function getSessionId() {
     });
     return response.responseJSON.sessionId;
 }
-
 
 function getLocation() {
     if (navigator.geolocation) {
@@ -40,25 +41,23 @@ function showPosition(position) {
     $("#dateLocal").val(date);
 }
 
-
-
 function showLocationError(error) {
     switch(error.code) {
         case error.PERMISSION_DENIED:
             console.log("User denied the request for Geolocation.");
-            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>User denied the request for Geolocation.</span>");
+            $("#lokacijaError").html("<span class='label label-warning fade-in pull-right'>User denied the request for Geolocation.</span>");
             break;
         case error.POSITION_UNAVAILABLE:
             console.log("Location information is unavailable.");
-            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>Location information is unavailable.</span>");
+            $("#lokacijaError").html("<span class='label label-warning fade-in pull-right'>Location information is unavailable.</span>");
             break;
         case error.TIMEOUT:
             console.log("The request to get user location timed out.");
-            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>The request to get user location timed out.</span>");
+            $("#lokacijaError").html("<span class='label label-warning fade-in pull-right'>The request to get user location timed out.</span>");
             break;
         case error.UNKNOWN_ERROR:
             console.log("An unknown error occurred.");
-            $("#lokacijaError").html("<span class='obvestilo label label-warning fade-in pull-right'>An unknown error occurred.</span>");
+            $("#lokacijaError").html("<span class='label label-warning fade-in pull-right'>An unknown error occurred.</span>");
             break;
     }
 }
@@ -74,13 +73,13 @@ function dodajOsebo() {
 
     for(var i = 0; i < meritevLokacija.length; i++) {
         if(meritevLokacija[i].ime == celoIme) {
-            $("#kreirajSporocilo").html("<span class='obvestilo label label-warning fade-in'>Ta oseba že obstaja!</span>");
+            $("#kreirajSporocilo").html("<span class='label label-warning fade-in'>Ta oseba že obstaja!</span>");
             return;
         }
     }
 
     if (!ime || !priimek || !datumRojstva || ime.trim().length == 0 || priimek.trim().length == 0 || datumRojstva.trim().length == 0) {
-        $("#kreirajSporocilo").html("<span class='obvestilo label label-warning fade-in'>Prosim vnesite zahtevane podatke!</span>");
+        $("#kreirajSporocilo").html("<span class='label label-warning fade-in'>Prosim vnesite zahtevane podatke!</span>");
     } else {
 
         $.ajaxSetup({
@@ -104,7 +103,7 @@ function dodajOsebo() {
                     data: JSON.stringify(partyData),
                     success: function (party) {
                         if (party.action == 'CREATE') {
-                            $("#kreirajSporocilo").html("<span class='obvestilo label label-success fade-in'>Uspešno kreiran EHR.</span>");
+                            $("#kreirajSporocilo").html("<span class='label label-success fade-in'>Uspešno kreiran EHR.</span>");
                             console.log("Uspešno kreiran EHR '" + ehrId + "'.");
                             if(meritevLokacija.length == 0) {
                                 meritevLokacija.push({
@@ -152,7 +151,7 @@ function dodajOsebo() {
                         }
                     },
                     error: function(err) {
-                        $("#kreirajSporocilo").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                        $("#kreirajSporocilo").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
                         console.log(JSON.parse(err.responseText).userMessage);
                     }
                 });
@@ -164,12 +163,12 @@ function dodajOsebo() {
 function preglejMeritveTemperature() {
     sessionId = getSessionId();
 
-    var ime = $("#preglejTemperaturoOseba").text();
+    var ime = $("#preglejTemperaturoOseba option:selected").text();
 	var ehrId = $("#preglejTemperaturoOseba").val();
 	var tip = $("#preglejTemperaturoTip").val();
 
 	if (!ehrId || ehrId.trim().length == 0 || !tip || tip.trim().length == 0 || !ime || ime.trim().length == 0) {
-		$("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>Prosim izberite osebo in tip poizvedbe!");
+		$("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>Prosim izberite osebo in tip poizvedbe!");
 	} else {
         $.ajax({
 			url: baseUrl + "/demographics/ehr/" + ehrId + "/party",
@@ -178,12 +177,13 @@ function preglejMeritveTemperature() {
 	    	success: function (data) {
 				var party = data.party;
 				$("#rezultatMeritveTemperature").html("<br/><span>Pridobivanje podatkov za <b>'" + tip + "'</b> bolnika <b>'" + party.firstNames + " " + party.lastNames + "'</b>.</span><br/><br/>");
-					$.ajax({
-					    url: baseUrl + "/view/" + ehrId + "/" + "body_temperature",
-					    type: 'GET',
-					    headers: {"Ehr-Session": sessionId},
-					    success: function (res) {
-					    	if (res.length > 0) {
+				if(tip == "telesna temperatura") {
+                    $.ajax({
+                        url: baseUrl + "/view/" + ehrId + "/" + "body_temperature",
+                        type: 'GET',
+                        headers: {"Ehr-Session": sessionId},
+                        success: function (res) {
+                            if (res.length > 0) {
                                 trenutnaPoizvedba = [];
                                 var meritveArray = [];
                                 for(var i = 0; i < meritevLokacija.length; i++) {
@@ -192,9 +192,10 @@ function preglejMeritveTemperature() {
                                         break;
                                     }
                                 }
-						    	var results = "<table class='table table-striped table-hover'><tr><th>Datum in ura</th><th class='text-center'>Telesna temperatura</th><th class='text-right'>Zunanja temperatura</th></tr>";
-						        for (var i in res) {
+                                var results = "<table class='table table-striped table-hover'><tr><th>Datum in ura</th><th class='text-center'>Telesna temperatura</th><th class='text-right'>Zunanja temperatura</th></tr>";
+                                for (var i in res) {
                                     var date = res[i].time.substring(0, res[i].time.length-10);
+                                    console.log(date);
                                     var temp = 0;
                                     for(var j = 0; j < meritveArray.length; j++) {
                                         if(meritveArray[j].date == date) {
@@ -203,28 +204,139 @@ function preglejMeritveTemperature() {
                                         }
                                     }
                                     trenutnaPoizvedba.push({
-                                       "temperature" : res[i].temperature,
-                                       "oTemperature" : temp,
-                                       "date" : date
+                                        "temperature" : res[i].temperature,
+                                        "oTemperature" : temp,
+                                        "date" : date
                                     });
-						            results += "<tr><td>" + date + "</td><td class='text-center'>" + res[i].temperature + " " 	+ res[i].unit + "</td><td class='text-right'>" + temp + " " + res[i].unit + "</td>";
-						        }
-						        results += "</table>";
+                                    results += "<tr><td>" + date + "</td><td class='text-center'>" + res[i].temperature + " " 	+ res[i].unit + "</td><td class='text-right'>" + temp + " " + res[i].unit + "</td>";
+                                }
+                                results += "</table>";
                                 results += '<button type="button" class="btn btn-primary btn-xs pull-right" onclick="narisiGraf()">Narisi graf</button>'
-						        $("#rezultatMeritveTemperature").append(results);
-					    	} else {
-					    		$("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>Ni podatkov!</span>");
-					    	}
-					    },
-					    error: function() {
-					    	$("#preglejMeritveTemperature").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
-							console.log(JSON.parse(err.responseText).userMessage);
-					    }
-					});
-                $("#preglejMeritveTemperature").html("<span class='obvestilo label label-warning fade-in'>");
+                                $("#rezultatMeritveTemperature").append(results);
+                            } else {
+                                $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>Ni podatkov!</span>");
+                            }
+                        },
+                        error: function() {
+                            $("#preglejMeritveTemperature").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                            console.log(JSON.parse(err.responseText).userMessage);
+                        }
+                    });
+                    $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>");
+                } else if(tip == "podhlajenost") {
+                    var AQL =
+                        "select " +
+                        "t/data[at0002]/events[at0003]/time/value as time, " +
+                        "t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/magnitude as temperature, " +
+                        "t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/units as unit " +
+                        "from EHR e[e/ehr_id/value='" + ehrId + "'] " +
+                        "contains OBSERVATION t[openEHR-EHR-OBSERVATION.body_temperature.v1] " +
+                        "where t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/magnitude<35 " +
+                        "order by t/data[at0002]/events[at0003]/time/value desc ";
+                    $.ajax({
+                        url: baseUrl + "/query?" + $.param({"aql": AQL}),
+                        type: 'GET',
+                        headers: {"Ehr-Session": sessionId},
+                        success: function (res) {
+                            if (typeof res !== "undefined") {
+                                trenutnaPoizvedba = [];
+                                var meritveArray = [];
+                                for(var i = 0; i < meritevLokacija.length; i++) {
+                                    if(meritevLokacija[i].ime == ime) {
+                                        meritveArray = meritevLokacija[i].meritve;
+                                        break;
+                                    }
+                                }
+                                var results = "<table class='table table-striped table-hover'><tr><th>Datum in ura</th><th class='text-center'>Telesna temperatura</th><th class='text-right'>Zunanja temperatura</th></tr>";
+
+                                for (var i in res.resultSet) {
+                                    var date = res.resultSet[i].time.substring(0, res.resultSet[i].time.length-10);
+                                    var temp = 0;
+                                    for(var j = 0; j < meritveArray.length; j++) {
+                                        if(meritveArray[j].date == date) {
+                                            temp = meritveArray[j].temperatura;
+                                            break;
+                                        }
+                                    }
+                                    trenutnaPoizvedba.push({
+                                        "temperature" : res.resultSet[i].temperature,
+                                        "oTemperature" : temp,
+                                        "date" : date
+                                    });
+                                    results += "<tr><td>" + date + "</td><td class='text-center'>" + res.resultSet[i].temperature + " " 	+ res.resultSet[i].unit + "</td><td class='text-right'>" + temp + " " + res.resultSet[i].unit + "</td>";
+                                }
+                                results += "</table>";
+                                results += '<button type="button" class="btn btn-primary btn-xs pull-right" onclick="narisiGraf()">Narisi graf</button>'
+                                $("#rezultatMeritveTemperature").append(results);
+                            } else {
+                                $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>Ni podatkov!</span>");
+                            }
+                        },
+                        error: function() {
+                            $("#preglejMeritveTemperature").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                            console.log(JSON.parse(err.responseText).userMessage);
+                        }
+                    });
+                    $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>");
+                } else if(tip == "vročina") {
+                    var AQL =
+                        "select " +
+                        "t/data[at0002]/events[at0003]/time/value as time, " +
+                        "t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/magnitude as temperature, " +
+                        "t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/units as unit " +
+                        "from EHR e[e/ehr_id/value='" + ehrId + "'] " +
+                        "contains OBSERVATION t[openEHR-EHR-OBSERVATION.body_temperature.v1] " +
+                        "where t/data[at0002]/events[at0003]/data[at0001]/items[at0004]/value/magnitude>37 " +
+                        "order by t/data[at0002]/events[at0003]/time/value desc ";
+                    $.ajax({
+                        url: baseUrl + "/query?" + $.param({"aql": AQL}),
+                        type: 'GET',
+                        headers: {"Ehr-Session": sessionId},
+                        success: function (res) {
+                            if (typeof res !== "undefined") {
+                                trenutnaPoizvedba = [];
+                                var meritveArray = [];
+                                for(var i = 0; i < meritevLokacija.length; i++) {
+                                    if(meritevLokacija[i].ime == ime) {
+                                        meritveArray = meritevLokacija[i].meritve;
+                                        break;
+                                    }
+                                }
+                                var results = "<table class='table table-striped table-hover'><tr><th>Datum in ura</th><th class='text-center'>Telesna temperatura</th><th class='text-right'>Zunanja temperatura</th></tr>";
+
+                                for (var i in res.resultSet) {
+                                    var date = res.resultSet[i].time.substring(0, res.resultSet[i].time.length-10);
+                                    var temp = 0;
+                                    for(var j = 0; j < meritveArray.length; j++) {
+                                        if(meritveArray[j].date == date) {
+                                            temp = meritveArray[j].temperatura;
+                                            break;
+                                        }
+                                    }
+                                    trenutnaPoizvedba.push({
+                                        "temperature" : res.resultSet[i].temperature,
+                                        "oTemperature" : temp,
+                                        "date" : date
+                                    });
+                                    results += "<tr><td>" + date + "</td><td class='text-center'>" + res.resultSet[i].temperature + " " 	+ res.resultSet[i].unit + "</td><td class='text-right'>" + temp + " " + res.resultSet[i].unit + "</td>";
+                                }
+                                results += "</table>";
+                                results += '<button type="button" class="btn btn-primary btn-xs pull-right" onclick="narisiGraf()">Narisi graf</button>'
+                                $("#rezultatMeritveTemperature").append(results);
+                            } else {
+                                $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>Ni podatkov!</span>");
+                            }
+                        },
+                        error: function() {
+                            $("#preglejMeritveTemperature").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                            console.log(JSON.parse(err.responseText).userMessage);
+                        }
+                    });
+                    $("#preglejMeritveTemperature").html("<span class='label label-warning fade-in'>");
+                }
             },
             error: function(err) {
-                $("#preglejMeritveTemperature").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+                $("#preglejMeritveTemperature").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
                 console.log(JSON.parse(err.responseText).userMessage);
             }
         });
@@ -242,7 +354,7 @@ function dodajMeritevTemperature() {
     getLocation();
 
     if (!ehrId || ehrId.trim().length == 0 || !temperatura || temperatura.trim().length == 0 || !zunTemperatura || zunTemperatura.trim().length == 0) {
-        $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-warning fade-in'>Prosim vnesite zahtevane podatke!</span>");
+        $("#dodajMeritevTemperatureSporocilo").html("<span class='label label-warning fade-in'>Prosim vnesite zahtevane podatke!</span>");
     } else {
         $.ajaxSetup({
             headers: {"Ehr-Session": sessionId}
@@ -302,13 +414,26 @@ function dodajMeritevTemperature() {
                     }
                 }
                 if(zunTemperatura > 0) {
-                    $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-success fade-in'>Ni nevarnosti za podhladitev.</span>");
+                    $("#dodajMeritevTemperatureSporocilo").text("Ni nevarnosti za podhladitev.");
                 } else {
-                    $("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-success fade-in'>Nevarnost podhladitve!</span>");
+                    $("#dodajMeritevTemperatureSporocilo").text("Nevarnost podhladitve!");
+                }
+                var trenText = $("#dodajMeritevTemperatureSporocilo").text();
+                if(temperatura < 35) {
+                    $("#dodajMeritevTemperatureSporocilo").html("<span class='label label-warning fade-in'>" + trenText + " Podhladitev!</span>");;
+                } else if(temperatura > 37) {
+
+                    $("#dodajMeritevTemperatureSporocilo").html("<span class='label label-warning fade-in'>" + trenText + " Vročina!</span>");
+                } else {
+                    if(trenText == "Nevarnost podhladitve!") {
+                        $("#dodajMeritevTemperatureSporocilo").html("<span class='label label-warning fade-in'>" + trenText + " Normalna telesna temperatura.</span>");
+                    } else {
+                        $("#dodajMeritevTemperatureSporocilo").html("<span class='label label-success fade-in'>" + trenText + " Normalna telesna temperatura.</span>");
+                    }
                 }
 		    },
 		    error: function(err) {
-		    	$("#dodajMeritevTemperatureSporocilo").html("<span class='obvestilo label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
+		    	$("#dodajMeritevTemperatureSporocilo").html("<span class='label label-danger fade-in'>Napaka '" + JSON.parse(err.responseText).userMessage + "'!");
 				console.log(JSON.parse(err.responseText).userMessage);
 		    }
 		});
@@ -327,8 +452,6 @@ function pobrisiDodaj() {
     $("#dodajTelesnaTemperatura").val("");
     $("#zunanjaTemperatura").val("");
 }
-
-
 
 function preglejTemperaturo() {
     getLocation();
@@ -563,6 +686,128 @@ window.onresize = updateGraph;
 
 function convertToCelsius(fahr) {
     return Math.round(((fahr - 32) * 5/9 *10))/10;
+}
+
+function dodajOsebe() {
+    for (var i = 0; i < osebe.length; i++) {
+        var ime = osebe[i].ime;
+        var priimek = osebe[i].priimek;
+        var datumRojstva = osebe[i].datumRojstva;
+        var ehrId = osebe[i].ehrId;
+        $('#preberiPredlogoOsebe').append($('<option/>', {
+            value: ""+ime+","+priimek+","+datumRojstva+"",
+            text : ""+ime+" "+priimek+""
+        }));
+        $('#dodajTemperaturo').append($('<option/>', {
+            value: ""+ehrId+"",
+            text : ""+ime+" "+priimek+""
+        }));
+        $('#preglejTemperaturoOseba').append($('<option/>', {
+            value: ""+ehrId+"",
+            text : ""+ime+" "+priimek+""
+        }));
+        meritevLokacija.push({
+            "ime" : ime + " " + priimek,
+            "meritve" : []
+        });
+    }
+    console.log(meritevLokacija);
+    for(var i = 0; i < osebe.length; i++) {
+        if(i == 0) {
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-14T13:00:00",
+                "longitude" : "14.2285582",
+                "latitude" : "45.9170819",
+                "temperatura" : "7.4"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-15T13:00:00",
+                "longitude" : "14.2285582",
+                "latitude" : "45.9170819",
+                "temperatura" : "10.5"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-16T07:00:00",
+                "longitude" : "14.2285582",
+                "latitude" : "45.9170819",
+                "temperatura" : "8.4"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-17T23:00:00",
+                "longitude" : "14.2285582",
+                "latitude" : "45.9170819",
+                "temperatura" : "6.2"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-17T18:00:00",
+                "longitude" : "14.2285582",
+                "latitude" : "45.9170819",
+                "temperatura" : "5.8"
+            });
+        } else if(i == 1) {
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-14T13:00:00",
+                "longitude" : "14.1145798",
+                "latitude" : "46.3683266",
+                "temperatura" : "5.6"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-15T04:00:00",
+                "longitude" : "14.1145798",
+                "latitude" : "46.3683266",
+                "temperatura" : "3.4"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-16T19:00:00",
+                "longitude" : "14.1145798",
+                "latitude" : "46.3683266",
+                "temperatura" : "4.7"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-17T07:00:00",
+                "longitude" : "14.1145798",
+                "latitude" : "46.3683266",
+                "temperatura" : "2.8"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-18T16:00:00",
+                "longitude" : "14.1145798",
+                "latitude" : "46.3683266",
+                "temperatura" : "3.2"
+            });
+        } else {
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-14T13:00:00",
+                "longitude" : "13.8738185",
+                "latitude" : "45.7093519",
+                "temperatura" : "13.8"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-15T01:00:00",
+                "longitude" : "13.8738185",
+                "latitude" : "45.7093519",
+                "temperatura" : "12.3"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-16T16:00:00",
+                "longitude" : "13.8738185",
+                "latitude" : "45.7093519",
+                "temperatura" : "12.8"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-17T14:00:00",
+                "longitude" : "13.8738185",
+                "latitude" : "45.7093519",
+                "temperatura" : "12.5"
+            });
+            meritevLokacija[i].meritve.push({
+                "date" : "2014-12-18T07:00:00",
+                "longitude" : "13.8738185",
+                "latitude" : "45.7093519",
+                "temperatura" : "5"
+            });
+        }
+    }
 }
 
 $(document).ready(function() {

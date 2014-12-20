@@ -13,19 +13,13 @@
         .btn {margin-top: 10px;
               margin-left: 10px;
               margin-right: 10px;}
-
-
         #graf {
             font: 10px sans-serif;
         }
-
-
-
-
     </style>
 </head>
 <body>
-        <p class="pull-right">Deluje na vseh browserjih razen Chrome-a.</p>
+        <button type="button" class="btn btn-primary pull-right" onclick="dodajOsebe()">Dodaj osebe</button>
 
         <div class="pull-left"><span id="lokacijaError"></span></div>
 
@@ -58,7 +52,7 @@
                         <div class="row">
                             <div class="col-lg-8 col-md-8 col-sm-8"><b>Dodaj meritev temperature</b></div>
                             <div class="col-lg-4 col-md-4 col-sm-4">
-                                <select class="form-control input-sm" id="dodajTemperaturo" onclick="preglejTemperaturo()"><option value=""></option></select>
+                                <select class="form-control input-sm" id="dodajTemperaturo" onchange="preglejTemperaturo()"><option value=""></option></select>
                             </div>
                         </div>
                     </div>
@@ -91,7 +85,7 @@
                                 <select class="form-control input-sm" id="preglejTemperaturoOseba"><option value=""></option></select>
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-4">
-                                <select class="form-control input-sm" id="preglejTemperaturoTip" onchange="preglejMeritveTemperature()"><option value=""></option><option value="telesna temperatura">telesna temperatura</option></select>
+                                <select class="form-control input-sm" id="preglejTemperaturoTip" onchange="preglejMeritveTemperature()"><option value=""></option><option value="telesna temperatura">telesna temperatura</option><option value="podhlajenost">podhlajenost</option><option value="vročina">vročina</option></select>
                             </div>
                         </div>
                     </div>
